@@ -1,0 +1,108 @@
+# Render Blueprint — persistent Node web service (the Render target of the
+# dual-target deploy; see vercel.json + backend/api/index.js for the other,
+# serverless target). Deploy: connect this repo in the Render dashboard (or
+# `render blueprint launch`), point it at backend/, and fill in every
+# `sync: false` var below in the service's Environment tab (Render never
+# stores those values in this file / in git).
+#
+# IMPORTANT — read before first deploy:
+#   1. ALLOWED_HOSTS MUST include this service's Render hostname (the
+#      *.onrender.com domain, or your custom domain), or EVERY request —
+#      including Render's own health check against healthCheckPath below —
+#      gets 403 "Unexpected Host header." (lib/httpsec.js's DNS-rebinding
+#      guard runs before anything else in the request pipeline; see
+#      routes.js's handleRequest / lib/httpsec.js:9-27).
+#   2. HOST must be "0.0.0.0" so the server binds to all interfaces, not just
+#      127.0.0.1 (server.js's default). HOST bypasses the backend/.env merge
+#      — server.js reads it straight off process.env (server.js:141) — so it
+#      MUST be set as an actual service environment variable, never only in
+#      a .env file. It is set as a literal value below for exactly that
+#      reason; do not remove it.
+#
+# Maintenance job note (both targets): the in-process scheduler
+# (lib/scheduler.js's setInterval, started when SCHEDULER != "off") anchors
+# both hash chains, verifies them, and prunes the retention window on a daily
+# timer — that only works on a service that stays running, which this Render
+# web service does (SCHEDULER=on below). The Vercel serverless target
+# (backend/api/index.js) never starts that interval, because a setInterval
+# does not survive between invocations there — Vercel Cron Jobs can only
+# invoke an HTTP path in the deployment, and this repo does not expose one
+# for maintenance, so a Vercel deploy needs `node cli.js maintain` (the same
+# one-tick maintenance entry point, exit code 2 on chain-verify failure) run
+# by an EXTERNAL scheduler instead — e.g. a scheduled GitHub Actions job, a
+# separate Render Cron Job service pointed at this same repo, or any host
+# that can run `node cli.js maintain` with the full production env on a
+# schedule (daily is what the in-process scheduler does; match that cadence).
+
+services:
+  - type: web
+    name: managed-switcher-backend
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    # This repo's root IS the backend (server.js + package.json at the root), so
+    # no rootDir is needed. (If instead you push the WHOLE monorepo, add
+    # `rootDir: backend` here or set Render's Root Directory to `backend`.)
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      # --- Non-secret, deployment-topology values (safe to commit as literals) ---
+      - key: HOST
+        value: "0.0.0.0" # see warning #2 above — required, bypasses the .env merge
+      - key: SCHEDULER
+        value: "on" # keep the in-process daily maintenance timer running on this persistent service
+
+      # --- Deployment-specific, set per environment (fill in via the Render dashboard) ---
+      - key: ALLOWED_HOSTS
+        sync: false # MUST include this service's *.onrender.com / custom hostname — see warning #1 above
+      - key: TRUST_PROXY
+        sync: false # set "true" — Render terminates TLS in front of this service (a proxy sets X-Forwarded-For)
+      - key: TRUSTED_PROXY_HOPS
+        sync: false # number of proxies that append to X-Forwarded-For in front of this service (Render: typically 1)
+      - key: REPO
+        sync: false # leave unset for the Mongo-backed production repo; "memory" is dev/demo only
+      - key: MAILER
+        sync: false # leave unset for Gmail in production; "console" is dev/demo only
+      - key: RETENTION_DAYS
+        sync: false # anchor-aligned audit/permission-chain prune window in days (default 7 if unset)
+
+      # --- Secrets (never stored in this file — set as real values in the dashboard) ---
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        sync: false
+      - key: MONGODB_PRUNE_URI
+        sync: false # optional: a separate delete-capable Mongo role for the retention prune only
+      - key: FIELD_ENC_KEY
+        sync: false
+      - key: BLIND_INDEX_KEY
+        sync: false
+      - key: AUDIT_HMAC_KEY
+        sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: ANCHOR_PRIVATE_KEY
+        sync: false
+      - key: ANCHOR_PUBLIC_KEY
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+
+      # --- Optional geo/IP provider (leave unset to keep the fail-closed null resolver) ---
+      - key: GEO_PROVIDER
+        sync: false # "none" (default) | "ip-api" | "geolite2"
+      - key: GEO_API_URL
+        sync: false # only needed to override the ip-api default endpoint
+      - key: GEOLITE2_DB_PATH
+        sync: false # only needed when GEO_PROVIDER=geolite2
+
+      # --- Not applicable on Render: TLS is terminated by Render's own proxy in
+      # front of this service, so TLS_KEY_FILE/TLS_CERT_FILE (backend/server.js's
+      # optional in-process HTTPS path) should stay unset here. They exist for a
+      # Windows-Service deployment with no reverse proxy in front of it. ---

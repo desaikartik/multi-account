@@ -1,0 +1,13 @@
+# Secrets — NEVER commit. Real values go in the Render dashboard (Environment tab)
+# or a local .env you keep private. See .env.example for the full list.
+.env
+.env.*
+!.env.example
+
+# Dependencies (Render runs `npm install` on deploy)
+node_modules/
+
+# Logs / local artifacts
+*.log
+npm-debug.log*
+.DS_Store
