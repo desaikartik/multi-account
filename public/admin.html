@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin console</title>
+<link rel="stylesheet" href="/console/admin.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ LOGIN SCREEN ============ -->
+  <div id="screen-login" class="center-screen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="logo">A</div>
+        <div>
+          <div class="auth-title">Admin console</div>
+          <div class="auth-sub">Sign in with your admin account</div>
+        </div>
+      </div>
+      <form id="loginForm">
+        <div class="field"><label for="loginEmail">Work email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary block" type="submit">Sign in</button>
+        <div class="form-msg" id="loginMsg"></div>
+      </form>
+      <p class="auth-note">This console is view-only. Control actions happen in the desktop app.</p>
+    </div>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <div id="screen-app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div><div class="brand-name">Admin console</div><div class="brand-sub">View-only reporting</div></div>
+      </div>
+      <nav>
+        <button class="nav-item active" data-view="overview" type="button"><span>Overview</span></button>
+        <button class="nav-item" data-view="users" type="button"><span>Users</span></button>
+        <button class="nav-item" data-view="usage" type="button"><span>Usage</span></button>
+        <button class="nav-item" data-view="timeline" type="button"><span>Timeline</span></button>
+        <button class="nav-item" data-view="devices" type="button"><span>Devices</span></button>
+        <button class="nav-item" data-view="ipgeo" type="button"><span>IP &amp; Geo</span></button>
+        <button class="nav-item" data-view="alerts" type="button"><span>Alerts</span></button>
+        <button class="nav-item" data-view="transfers" type="button"><span>Transfers</span></button>
+        <button class="nav-item" data-view="tracer" type="button"><span>Tracer</span></button>
+        <button class="nav-item" data-view="integrity" type="button"><span>Integrity</span></button>
+      </nav>
+      <div class="sidebar-foot"><span class="dot"></span><span>Read-only session</span></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1 id="pageTitle">Overview</h1>
+        <div class="topbar-right">
+          <span class="chip" id="viewOnlyChip">View-only</span>
+          <span class="topbar-email" id="adminEmail"></span>
+          <button class="theme-btn" data-action="theme" type="button" id="themeBtn" title="Switch theme">&#127769;</button>
+          <button class="topbar-btn" data-action="signout" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <div class="notice-bar">View-only console &mdash; control actions happen in the desktop app.</div>
+
+      <div class="content">
+
+        <!-- ---------- Overview ---------- -->
+        <section id="view-overview">
+          <div class="section-head">
+            <h2>Overview</h2>
+            <button class="btn secondary" data-action="refresh-overview" type="button">Refresh</button>
+          </div>
+          <div class="kpis" id="overviewKpis"></div>
+        </section>
+
+        <!-- ---------- Users ---------- -->
+        <section id="view-users" class="hidden">
+          <div class="section-head">
+            <h2>Users</h2>
+            <div class="section-actions">
+              <button class="btn secondary" data-action="refresh-users" type="button">Refresh</button>
+              <button class="btn secondary" data-action="download-csv" data-report="users" type="button">Export CSV</button>
+              <button class="btn secondary" data-action="print-view" type="button">Print / PDF</button>
+            </div>
+          </div>
+          <p class="window-note">Users with issues are listed first and highlighted.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Email</th><th>Added by</th><th>Role</th><th>Status</th><th>Import</th><th>Export</th><th>Monitoring</th><th>Expires</th><th>Devices</th><th>Alerts</th><th>Issues</th><th>Actions</th></tr></thead>
+              <tbody id="usersBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Usage ---------- -->
+        <section id="view-usage" class="hidden">
+          <div class="section-head">
+            <h2>Usage overview</h2>
+            <div class="section-actions">
+              <label class="inline-field">Days
+                <select id="usageDays">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7" selected>7</option>
+                </select>
+              </label>
+              <button class="btn secondary" data-action="refresh-usage" type="button">Refresh</button>
+              <button class="btn secondary" data-action="download-csv" data-report="usage" type="button">Export CSV</button>
+              <button class="btn secondary" data-action="print-view" type="button">Print / PDF</button>
+            </div>
+          </div>
+          <p class="window-note" id="usageWindow"></p>
+          <p class="window-note">Who has used how much of each Claude account's limit, and when — heaviest first.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Email</th><th>Account</th><th>5-hour</th><th>5h resets</th><th>Weekly</th><th>Weekly resets</th><th>Updated</th></tr></thead>
+              <tbody id="usageBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Timeline ---------- -->
+        <section id="view-timeline" class="hidden">
+          <div class="section-head">
+            <h2>Timeline</h2>
+            <div class="section-actions">
+              <label class="inline-field">Days
+                <select id="timelineDays">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7" selected>7</option>
+                </select>
+              </label>
+              <input type="text" id="timelineUserId" placeholder="Filter by user id (optional)">
+              <button class="btn secondary" data-action="refresh-timeline" type="button">Apply</button>
+            </div>
+          </div>
+          <p class="window-note" id="timelineWindow"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Time</th><th>Event</th><th>Severity</th><th>User</th><th>Device</th><th>Result</th><th>Reason</th><th>Location</th><th>IP</th></tr></thead>
+              <tbody id="timelineBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Devices ---------- -->
+        <section id="view-devices" class="hidden">
+          <div class="section-head">
+            <h2>Devices</h2>
+            <button class="btn secondary" data-action="refresh-devices" type="button">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Device</th><th>User</th><th>Status</th><th>First seen</th><th>Last seen</th><th>App version</th><th>OS</th><th>IPv4</th><th>Geo (v4)</th><th>IPv6</th><th>Geo (v6)</th><th>Last IP</th><th>Geo</th></tr></thead>
+              <tbody id="devicesBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- IP & Geo ---------- -->
+        <section id="view-ipgeo" class="hidden">
+          <div class="section-head">
+            <h2>IP &amp; Geo</h2>
+            <button class="btn secondary" data-action="refresh-ipgeo" type="button">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Device</th><th>User</th><th>Last seen</th><th>IPv4</th><th>Geo (v4)</th><th>IPv6</th><th>Geo (v6)</th></tr></thead>
+              <tbody id="ipgeoBody"></tbody>
+            </table>
+          </div>
+          <div class="section-head"><h2>IP rules</h2></div>
+          <p class="window-note">Configured allow/block rules (read-only &mdash; managed from the desktop app).</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Scope</th><th>User</th><th>Type</th><th>CIDR</th><th>Reason</th><th>Created by</th><th>Created at</th></tr></thead>
+              <tbody id="ipRulesBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Alerts ---------- -->
+        <section id="view-alerts" class="hidden">
+          <div class="section-head">
+            <h2>Alerts</h2>
+            <div class="section-actions">
+              <label class="inline-field">Days
+                <select id="alertsDays">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7" selected>7</option>
+                </select>
+              </label>
+              <button class="btn secondary" data-action="refresh-alerts" type="button">Refresh</button>
+            </div>
+          </div>
+          <p class="window-note" id="alertsWindow"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Time</th><th>Severity</th><th>Event</th><th>Reason</th><th>Email</th><th>User</th><th>Device</th></tr></thead>
+              <tbody id="alertsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Transfers ---------- -->
+        <section id="view-transfers" class="hidden">
+          <div class="section-head">
+            <h2>Transfers</h2>
+            <div class="section-actions">
+              <label class="inline-field">Days
+                <select id="transfersDays">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7" selected>7</option>
+                </select>
+              </label>
+              <button class="btn secondary" data-action="refresh-transfers" type="button">Refresh</button>
+            </div>
+          </div>
+          <p class="window-note" id="transfersWindow"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Exported by</th><th>From device</th><th>Exported at</th><th>Imported by (who · when)</th><th>Flag</th></tr></thead>
+              <tbody id="transfersBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------- Tracer ---------- -->
+        <section id="view-tracer" class="hidden">
+          <div class="section-head"><h2>Watermark tracer</h2></div>
+          <div class="panel">
+            <h3>Trace an export</h3>
+            <p class="sub">Enter a watermark id to see who exported the file and who imported it.</p>
+            <div class="field"><label for="tracerInput">Watermark id</label><input type="text" id="tracerInput" placeholder="wm_..."></div>
+            <button class="btn primary" data-action="trace-search" type="button">Trace</button>
+          </div>
+          <div id="tracerResult"></div>
+        </section>
+
+        <!-- ---------- Integrity ---------- -->
+        <section id="view-integrity" class="hidden">
+          <div class="section-head">
+            <h2>Integrity</h2>
+            <button class="btn secondary" data-action="refresh-integrity" type="button">Refresh</button>
+          </div>
+          <div class="integrity-grid">
+            <div class="panel">
+              <h3>Audit chain</h3>
+              <p class="sub">Confirms the tamper-evident event log has not been altered.</p>
+              <div id="auditVerifyChip"></div>
+            </div>
+            <div class="panel">
+              <h3>Permission chain</h3>
+              <p class="sub">Confirms the entitlement change history has not been altered.</p>
+              <div id="permVerifyChip"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Signed audit export</h3>
+            <p class="sub">Download a signed, point-in-time compliance report of the audit log.</p>
+            <button class="btn secondary" data-action="download-export" type="button">Download signed audit export</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="/console/adminviews.js"></script>
+<script src="/console/admin.js"></script>
+</body>
+</html>
